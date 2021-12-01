@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 #
+# 是否安装依赖和安装依赖包的名称设置
+dependencies="p" ##yes为全部安装，no为不安装，p为安装package，r为安装requirement
+package_name="@types/node axios canvas crypto-js date-fns dotenv fs jsdom js-base64 md5 png-js require ts-md5 tslib typescript jieba prettytable form-data json5 global-agent"
+# requirement_name="cryptography~=3.2.1 json5 requests rsa"
 
-## 定义是否自动安装或修复缺失的依赖，默认为1，表示自动修复；留空或其他数值表示不修复。
-FixDependType="1"
-## 定义监控修复的依赖名称
-package_name="canvas png-js date-fns axios crypto-js ts-md5 tslib @types/node dotenv got md5 requests typescript fs require tslib jsdom download js-base64 tough-cookie tunnel ws qrcode-terminal jieba prettytable form-data json5 global-agent"
 
-install_dependencies_normal(){
+# 📦安装依赖
+install_packages_normal(){
     for i in $@; do
         case $i in
             canvas)
@@ -32,7 +33,7 @@ install_dependencies_normal(){
     done
 }
 
-install_dependencies_force(){
+install_packages_force(){
     for i in $@; do
         case $i in
             canvas)
@@ -65,11 +66,43 @@ install_dependencies_force(){
     done
 }
 
-install_dependencies_all(){
-    install_dependencies_normal $package_name
+install_packages_all(){
+    install_packages_normal $package_name
     for i in $package_name; do
-        {install_dependencies_force $i} &
+        install_packages_force $i
     done
 }
 
-[[ $FixDependType = "1" ]] && install_dependencies_all >/dev/null 2>&1 &
+install_requirements(){
+    for i in $requirement_name; do
+        case $i in
+            cryptography~=3.2.1)
+                cd /ql/scripts
+                if [[ "$(pip3 freeze)" =~ "cryptography==3.2.1" ]]; then
+                    echo "cryptography==3.2.1 已安装"
+                else
+                    apk add --no-cache gcc libffi-dev musl-dev openssl-dev python3-dev && pip3 install cryptography~=3.2.1
+                fi
+                ;;
+            *)
+                if [[ "$(pip3 freeze)" =~ $i ]]; then
+                    echo "$i 已安装"
+                else
+                    pip3 install $i
+                fi
+        esac
+    done
+}
+
+case $dependencies in
+    yes)
+    install_packages_all &
+    install_requirements &
+    ;;
+    p)
+    install_packages_all &
+    ;;
+    r)
+    install_requirements & 
+    ;;   
+esac
